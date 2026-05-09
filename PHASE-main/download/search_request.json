@@ -1,0 +1,15 @@
+{
+  "repository": "ASF",
+  "dataset": "SENTINEL-1",
+  "processingLevel": [],
+  "beamMode": [],
+  "polarization": [],
+  "flightDirection": [],
+  "subtype": [],
+  "startDate": "2024-01-01",
+  "endDate": "2024-02-01",
+  "pathStart": [],
+  "pathEnd": [],
+  "frameStart": [],
+  "frameEnd": []
+}
