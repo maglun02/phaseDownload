@@ -1,4 +1,6 @@
 import API
+import json
+import os
 
 def run_search():
     data = API.read_json()
@@ -18,6 +20,19 @@ def run_search():
     print("Number of raw ASF features:", len(data["features"]))
 
     info = API.relevant_info(data)
+    summary = {
+        "product_count": info["product_count"],
+        "total_size_gb": round(info["total_size_gb"], 2)
+    }
+
+    summary_path = os.path.join(
+        os.path.dirname(__file__),
+        "search_summary.json"
+    )
+
+    with open(summary_path, "w") as f:
+        json.dump(summary, f, indent=4)
+
     print("Product count:", info["product_count"])
 
     print("Total size GB:", info["total_size_gb"])

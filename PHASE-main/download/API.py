@@ -11,33 +11,29 @@ def read_json():
 #setting up AOI for URL
 def build_aoi(aoi):
     aoi_type = aoi["type"]
-    coords = aoi["coordinates"]
-
+    
     if aoi_type == "point":
-        lon, lat = coords 
+        lon, lat = aoi["coordinates"]
         return f"POINT({lon} {lat})"
     
     elif aoi_type == "line":
+        coords = aoi["coordinates"]
         line_coords = ", ".join(f"{lon} {lat}" for lon, lat in coords)
         return f"LINESTRING({line_coords})"
     
-    else:
+    elif aoi_type in ["polygon", "rectangle"]:
         #close the polygon
+        coords = aoi.get("coordinates", aoi.get("corners"))
         polygon_coords = coords + [coords[0]]
         poly_string = ", ".join(f"{lon} {lat}" for lon, lat in polygon_coords)
         return f"POLYGON(({poly_string}))"
+    
+    else:
+        raise ValueError(f"Unsupported AOI type: {aoi_type}")
 
 def build_search_parameters(data):
     #import parameters and harcode sentinel-1, hardcoded data just for test
-    aoi = {
-    "type": "polygon",
-    "coordinates": [
-        [10.10, 63.50],
-        [10.70, 63.50],
-        [10.70, 63.20],
-        [10.10, 63.20]
-    ]
-    }
+    aoi = data["aoi"]
     start_date = data.get("startDate")
     end_date = data.get("endDate")
     polarization = data.get("polarization")
@@ -57,28 +53,33 @@ def build_search_parameters(data):
     }
 
     if start_date:
-        params["startDate"] = start_date
+        params["start"] = start_date
     if end_date:
-        params["endDate"] = end_date
+        params["end"] = end_date
     if polarization:
         params["polarization"] = polarization
     if processingLevel:
-        params["processing"] = processingLevel
+        params["processingLevel"] = processingLevel
     if beamMode:
-        params["beam"] = beamMode
+        params["beamMode"] = beamMode
     if flightDirection:
-        params["flight"] = flightDirection
+        params["flightDirection"] = flightDirection
     if subtype:
         params["subtype"] = subtype
-    if pathStart:
-        params["pathStart"] = pathStart
-    if pathEnd:
-        params["pathEnd"] = pathEnd
-    if frameStart:
-        params["frameStart"] = frameStart
-    if frameEnd:
-        params["frameEnd"] = frameEnd
+     
+    if pathStart and pathEnd:
+        params["relativeOrbit"] = f"{pathStart}-{pathEnd}"
+    elif pathStart:
+        params["relativeOrbit"] = pathStart
+    elif pathEnd:
+        params["relativeOrbit"] = pathEnd
     
+    if frameStart and frameEnd:
+        params["frame"] = f"{frameStart}-{frameEnd}"
+    elif frameStart:
+        params["frame"] = frameStart
+    elif frameEnd:
+        params["frame"] = frameEnd
     return params
 
 #build URL to be send 
@@ -106,6 +107,8 @@ def relevant_info(data):
     for feature in features:
         props = feature["properties"]
 
+        if not props["url"].endswith(".zip"):
+            continue
         size_bytes = props["bytes"]
         total_size += size_bytes
 
