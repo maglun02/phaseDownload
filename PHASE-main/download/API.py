@@ -1,6 +1,7 @@
 import requests
 import os
 import json
+import asf_search as asf
 
 def read_json():
     json_path = os.path.join(os.path.dirname(__file__), "search_request.json")
@@ -30,17 +31,17 @@ def build_aoi(aoi):
     
     else:
         raise ValueError(f"Unsupported AOI type: {aoi_type}")
+    
+#handling parameters that can have multiple values
+def handle_multi_variable(params, asf_name, value):
+    if value:
+        params[asf_name] = value
 
 def build_search_parameters(data):
     #import parameters and harcode sentinel-1, hardcoded data just for test
     aoi = data["aoi"]
     start_date = data.get("startDate")
-    end_date = data.get("endDate")
-    polarization = data.get("polarization")
-    processingLevel = data.get("processingLevel")
-    beamMode = data.get("beamMode")
-    flightDirection = data.get("flightDirection")
-    subtype = data.get("subtype")
+    end_date = data.get("endDate") 
     pathStart = data.get("pathStart")
     pathEnd = data.get("pathEnd")
     frameStart = data.get("frameStart")
@@ -56,16 +57,12 @@ def build_search_parameters(data):
         params["start"] = start_date
     if end_date:
         params["end"] = end_date
-    if polarization:
-        params["polarization"] = polarization
-    if processingLevel:
-        params["processingLevel"] = processingLevel
-    if beamMode:
-        params["beamMode"] = beamMode
-    if flightDirection:
-        params["flightDirection"] = flightDirection
-    if subtype:
-        params["subtype"] = subtype
+    handle_multi_variable(params, "polarization", data.get("polarization"))
+    handle_multi_variable(params, "processingLevel", data.get("processingLevel"))
+    handle_multi_variable(params, "beamMode", data.get("beamMode")) 
+    handle_multi_variable(params, "flightDirection", data.get("flightDirection"))
+    handle_multi_variable(params, "platform", data.get("subtype"))
+    handle_multi_variable(params, "groupID", data.get("groupID"))  
      
     if pathStart and pathEnd:
         params["relativeOrbit"] = f"{pathStart}-{pathEnd}"
@@ -130,35 +127,28 @@ def sampling_rate(information, rate):
     return information[::rate]
 
 
-#using the urls from the first API call to download the files, need a way to confirme with frontend that the user
-#want to download the data or if the file is to big or other sampling rate... but have to wait on frontend first
+#using the urls from the first API call to download the files
 def download_url(information, username, password):
-    for info in information:
-        url = info["url"]
+    #create a session with credentials for download
+    session = asf.ASFSession().auth_with_creds(username, password)
 
-        #handeling network errors
-        try:
-            response = requests.get(url, auth=(username, password), stream=True , timeout=30)
-        except requests.exceptions.RequestException as e:
-            print("Download faild:", e)
-            continue
-        
-        #handeling API errors
-        if response.status_code != 200:
-            print("Download error:", response.status_code)
-            continue
+    #get the urls from data
+    urls = [item["url"] for item in information]
 
-        #saving file
-        filename = info["sceneName"] + ".zip"
+    #path to download folder
+    download_folder = os.path.join(
+        os.path.dirname(__file__),
+        "downloaded_data"
+    )
 
-        #check if picture is downloaded
-        if os.path.exists(filename):
-            print(f"Skip {filename}, alredy exists")
-            continue
+    #create folder if it not exist
+    os.makedirs(download_folder, exist_ok=True)
 
-        #downloading file in chunck to make it easier for program 
-        with open(filename, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
+    #download using the found url, credentials from session and a path for files to be stored
+    asf.download_urls(
+        urls=urls,
+        path=download_folder,
+        session=session
+
+    )
 
