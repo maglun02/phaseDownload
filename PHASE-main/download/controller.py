@@ -2,6 +2,40 @@ import API
 import json
 import os
 import sys
+import asf_search as asf
+
+#check login for user
+def run_login():
+    #get username and password
+    login_path = os.path.join(
+        os.path.dirname(__file__),
+        "login_request.json"
+    )
+
+    with open(login_path, "r") as f:
+        userInfo = json.load(f)
+
+    username = userInfo.get("username")
+    password = userInfo.get("password")
+
+    #check login and save result for matlab
+    login_result = {}
+
+    if API.check_login(username, password):
+        login_result["status"] = "success"
+        print("login ok")
+    else:
+        login_result["status"] = "failure"
+        print("login faild, password or username wrong")
+        
+    result_path = os.path.join(
+        os.path.dirname(__file__),
+        "login_result.json"
+    )
+
+    with open(result_path, "w") as f:
+        json.dump(login_result, f, indent=4)
+
 
 #run the first API call
 def run_search():
@@ -25,6 +59,16 @@ def run_search():
 
     info = API.relevant_info(data)
 
+    download_info = {
+        "information": [
+            {
+                "sceneName": product["sceneName"],
+                "url": product["url"]
+            }
+            for product in info["information"]
+        ]
+    }
+
     #save all data for later use
     download_data_path = os.path.join(
         os.path.dirname(__file__),
@@ -32,12 +76,26 @@ def run_search():
     )
 
     with open(download_data_path, "w") as f:
-        json.dump(info, f, indent=4)
+        json.dump(download_info, f, indent=4)
 
-    #summary for matlab popup
+    #summary for matlab, containing size, footprint, path and frame 
+    products = []
+
+    for product in info["information"]:
+        products.append({
+            "sceneName": product["sceneName"],
+            "size": round(product["size"], 2),
+            "size_bytes": product["size_bytes"],
+            "pathNumber": product["pathNumber"],
+            "frameNumber": product["frameNumber"],
+            "footprint": product["footprint"]
+        })
+
     summary = {
         "product_count": info["product_count"],
-        "total_size_gb": round(info["total_size_gb"], 2)
+        "total_size_gb": round(info["total_size_gb"], 2),
+        "total_size_bytes": info["total_size_bytes"],
+        "products": products
     }
     print(summary)
 
@@ -59,8 +117,17 @@ def run_search():
     
 #if download confirmed, start downloading data
 def run_download():
-    #hardcode username and pasword for now
-    
+    #get username and password
+    login_path = os.path.join(
+        os.path.dirname(__file__),
+        "login_request.json"
+    )
+
+    with open(login_path, "r") as f:
+        userInfo = json.load(f)
+
+    username = userInfo.get("username")
+    password = userInfo.get("password")
     #get data from json file
     download_data_path = os.path.join(
         os.path.dirname(__file__),
@@ -70,15 +137,18 @@ def run_download():
     with open(download_data_path, "r") as f:
         info = json.load(f)
 
-    API.download_url(info["information"], user_name, password)
+    API.download_url(info["information"], username, password)
 
 
 if __name__ == "__main__":
     mode = sys.argv[1]
 
-    #sepreate if we want to run search or download
+    #sepreate if we want to run search, download or username/password check 
     if mode == "search":
         run_search()
 
     elif mode == "download":
         run_download()
+
+    elif mode == "login":
+        run_login()

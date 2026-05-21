@@ -1,4 +1,41 @@
 {
-    "product_count": 3,
-    "total_size_gb": 11.11
+    "product_count": 1,
+    "total_size_gb": 1.47,
+    "total_size_bytes": 1580168285,
+    "products": [
+        {
+            "sceneName": "S1A_IW_RAW__0SDV_20240502T164724_20240502T164757_053695_0685B8_E94A",
+            "size": 1.47,
+            "size_bytes": 1580168285,
+            "pathNumber": 73,
+            "frameNumber": 204,
+            "footprint": {
+                "coordinates": [
+                    [
+                        [
+                            14.0029,
+                            64.4516
+                        ],
+                        [
+                            8.9499,
+                            64.0736
+                        ],
+                        [
+                            9.9589,
+                            62.1522
+                        ],
+                        [
+                            14.6886,
+                            62.5114
+                        ],
+                        [
+                            14.0029,
+                            64.4516
+                        ]
+                    ]
+                ],
+                "type": "Polygon"
+            }
+        }
+    ]
 }

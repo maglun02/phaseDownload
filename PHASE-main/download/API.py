@@ -9,6 +9,15 @@ def read_json():
         data = json.load(f)
     return data
 
+def check_login(username, password):
+    try:
+        asf.ASFSession().auth_with_creds(username, password)
+        return True
+    
+    except Exception as e:
+        print("Login failed:", e)
+        return False
+
 #setting up AOI for URL
 def build_aoi(aoi):
     aoi_type = aoi["type"]
@@ -103,6 +112,7 @@ def relevant_info(data):
     #relevant info for each picture and total size off all pictures
     for feature in features:
         props = feature["properties"]
+        print(json.dumps(feature["geometry"], indent=2))
 
         if not props["url"].endswith(".zip"):
             continue
@@ -110,15 +120,21 @@ def relevant_info(data):
         total_size += size_bytes
 
         results.append({
-            "sceneName": props["sceneName"],
-            "url": props["url"],
-            "size": props["bytes"] / (1024**3)
-        })
+        "sceneName": props["sceneName"],
+        "url": props["url"],
+        "size": props["bytes"] / (1024**3),
+        "size_bytes": props["bytes"],
+        "pathNumber": props["pathNumber"],
+        "frameNumber": props["frameNumber"],
+        "footprint": feature["geometry"]
+    })
+
     total_size_gb = total_size / (1024**3)
     product_count = len(results)
     return {
         "information": results,
         "total_size_gb": total_size_gb,
+        "total_size_bytes": total_size,
         "product_count" : product_count
     }
 
@@ -138,8 +154,10 @@ def download_url(information, username, password):
     #path to download folder
     download_folder = os.path.join(
         os.path.dirname(__file__),
-        "downloaded_data"
-    )
+        "..",
+        "PHASE_Preprocessing",
+        "slaves"
+        )
 
     #create folder if it not exist
     os.makedirs(download_folder, exist_ok=True)

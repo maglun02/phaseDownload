@@ -2,20 +2,7 @@
     "information": [
         {
             "sceneName": "S1A_IW_RAW__0SDV_20240502T164724_20240502T164757_053695_0685B8_E94A",
-            "url": "https://datapool.asf.alaska.edu/RAW/SA/S1A_IW_RAW__0SDV_20240502T164724_20240502T164757_053695_0685B8_E94A.zip",
-            "size": 1.4716463955119252
-        },
-        {
-            "sceneName": "S1A_IW_SLC__1SDV_20240502T164727_20240502T164755_053695_0685B8_9F6E",
-            "url": "https://datapool.asf.alaska.edu/SLC/SA/S1A_IW_SLC__1SDV_20240502T164727_20240502T164755_053695_0685B8_9F6E.zip",
-            "size": 7.97461399435997
-        },
-        {
-            "sceneName": "S1A_IW_GRDH_1SDV_20240502T164728_20240502T164753_053695_0685B8_DE42",
-            "url": "https://datapool.asf.alaska.edu/GRD_HD/SA/S1A_IW_GRDH_1SDV_20240502T164728_20240502T164753_053695_0685B8_DE42.zip",
-            "size": 1.6620723446831107
+            "url": "https://datapool.asf.alaska.edu/RAW/SA/S1A_IW_RAW__0SDV_20240502T164724_20240502T164757_053695_0685B8_E94A.zip"
         }
-    ],
-    "total_size_gb": 11.108332734555006,
-    "product_count": 3
+    ]
 }
