@@ -7,6 +7,7 @@ import functionality
 
 #check login for user
 def run_login():
+    print("run_login started")
     #get username and password
     login_path = os.path.join(
         os.path.dirname(__file__),
@@ -41,8 +42,8 @@ def run_login():
 #run the first API call
 def run_search():
     #read data from matlab
-    data = functionality.read_json()
-    params = functionality.build_search_parameters(data)
+    request_data = functionality.read_json()
+    params = functionality.build_search_parameters(request_data)
     response = API.build_api_url(params)
 
     #handel errors
@@ -58,7 +59,19 @@ def run_search():
     data = response.json()
     print("Number of raw ASF features:", len(data["features"]))
 
+    sampling = request_data.get("sampling")
+    if sampling:
+        data["features"] = functionality.sampling_rate(
+            data["features"],
+            sampling.get("rate"),
+            sampling.get("unit")
+        )
+
     info = functionality.relevant_info(data)
+    
+    #retive the best footprint, to get best path, frame and orbit direction
+    aoi_lon, aoi_lat = functionality.find_aoi_center(request_data["aoi"])
+    best_product = functionality.best_footprint(info["information"], aoi_lon, aoi_lat)
 
     download_info = {
         "information": [
@@ -97,6 +110,9 @@ def run_search():
         "product_count": info["product_count"],
         "total_size_gb": round(info["total_size_gb"], 2),
         "total_size_bytes": info["total_size_bytes"],
+        "best_path": best_product["pathNumber"],
+        "best_frame": best_product["frameNumber"],
+        "best_direction": best_product["flightDirection"],
         "products": products
     }
     print(summary)
@@ -108,11 +124,6 @@ def run_search():
 
     with open(summary_path, "w") as f:
         json.dump(summary, f, indent=4)
-
-    #print check 
-    print("Product count:", info["product_count"])
-    print("Total size GB:", info["total_size_gb"])
-    print("First 5 products:")
 
     for product in info["information"][:5]:
         print(product["sceneName"], "-", round(product["size"], 2), "GB")
@@ -151,15 +162,11 @@ def run_download():
     compatibility = functionality.check_compatibility(summary["products"])
     if not compatibility["valid"]:
         summary = {
-        "status": "invalid",
-        "message": "Products are not compatible for PHASE.",
-        "same_path": compatibility["same_path"],
-        "same_frame": compatibility["same_frame"],
-        "same_direction": compatibility["same_direction"],
-        "paths": compatibility["paths"],
-        "frames": compatibility["frames"],
-        "direction": compatibility["direction"]
-    }
+            "status": "invalid",
+            "message": "Products are not compatible for PHASE.",
+            "compatibility": compatibility
+        }
+
         summary_path = os.path.join(
             os.path.dirname(__file__),
             "search_summary.json"

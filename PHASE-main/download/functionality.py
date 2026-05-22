@@ -1,5 +1,8 @@
 import json
 import os
+from datetime import datetime
+from collections import defaultdict
+from shapely.geometry import Point, Polygon
 
 def read_json():
     json_path = os.path.join(os.path.dirname(__file__), "search_request.json")
@@ -55,7 +58,7 @@ def build_search_parameters(data):
     if start_date:
         params["start"] = start_date
     if end_date:
-        params["end"] = end_date
+        params["end"] = end_date + "T23:59:59Z"
     handle_multi_variable(params, "polarization", data.get("polarization"))
     handle_multi_variable(params, "processingLevel", data.get("processingLevel"))
     handle_multi_variable(params, "beamMode", data.get("beamMode")) 
@@ -78,7 +81,7 @@ def build_search_parameters(data):
         params["frame"] = frameEnd
     return params
 
-#retriving relevant data for later use
+#retriving relevant data to show user
 def relevant_info(data):
     features = data["features"]
     results = []
@@ -93,9 +96,9 @@ def relevant_info(data):
         if not props["url"].endswith(".zip"):
             continue
         
-        allowed_levels = ["SLC"]
-        if props["processingLevel"] not in allowed_levels:
-            continue
+        #allowed_levels = ["SLC"]
+        #if props["processingLevel"] not in allowed_levels:
+            #continue
         
         size_bytes = props["bytes"]
         total_size += size_bytes
@@ -121,8 +124,58 @@ def relevant_info(data):
     }
 
 #Sampling rate if user do not want all of the pictures
-def sampling_rate(information, rate):
-    return information[::rate]
+def sampling_rate(information, rate, period):
+    #chechk if rate is a valid number
+    if not rate or rate <= 0 or not period:
+        return information
+    
+    period = str(period).lower()
+    
+    #group by week/month/year
+    groups = defaultdict(list)
+    for product in information:
+        props = product["properties"]
+        if not props["url"].endswith(".zip"):
+            continue
+
+        date = datetime.fromisoformat(
+            props["startTime"].replace("Z", "+00:00")
+        )
+
+        #grouping key for different periods
+        if period == "week":
+            year, week, _ = date.isocalendar()
+            key = f"{year}-W{week}"
+        elif period == "month":
+            key = date.strftime("%Y-%m")
+        elif period == "year":
+            key = date.strftime("%Y")   
+
+        #add product to the correct group
+        groups[key].append(product)
+
+    sampled = []
+    #sample evenly inside of each group
+    for key in sorted(groups.keys()):
+        #sort based on time, oldest to newest
+        products = sorted(
+            groups[key],
+            key=lambda product: product["properties"]["startTime"]
+        )
+
+        #if fewer products then requestet, return all products
+        if len(products) <= rate:
+            sampled.extend(products)
+            continue
+
+        #calculate even space between products
+        step = len(products) / rate
+
+        for i in range(rate):
+            index = int(i * step)
+            sampled.append(products[index])
+    return sampled
+
 
 #cheking if paths and orbits are the same
 def check_compatibility(information):
@@ -148,3 +201,41 @@ def check_compatibility(information):
     )
 
     return results
+
+#finding the best producrt for user
+def best_footprint(products, aoi_lon, aoi_lat):
+    aoi_center = Point(aoi_lon, aoi_lat)
+
+    best_product = None
+    best_score = -1
+
+    for product in products:
+        coords = product["footprint"]["coordinates"][0]
+        polygon = Polygon(coords)
+
+        if not polygon.contains(aoi_center):
+            continue
+
+        score = aoi_center.distance(polygon.boundary)
+
+        if score > best_score:
+            best_score = score
+            best_product = product
+    
+    return best_product
+
+def find_aoi_center(aoi):
+    if aoi["type"] == "point":
+        lon, lat = aoi["coordinates"]
+        return lon, lat
+
+    elif aoi["type"] == "line":
+        coords = aoi["coordinates"]
+
+    elif aoi["type"] in ["polygon", "rectangle"]:
+        coords = aoi.get("coordinates", aoi.get("corners"))
+
+    polygon = Polygon(coords)
+    center = polygon.centroid
+
+    return center.x, center.y

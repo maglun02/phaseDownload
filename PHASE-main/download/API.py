@@ -5,11 +5,20 @@ import asf_search as asf
 #check user credentials 
 def check_login(username, password):
     try:
-        asf.ASFSession().auth_with_creds(username, password)
-        return True
+        session = asf.ASFSession().auth_with_creds(username, password)
+        response = session.get(
+            "https://urs.earthdata.nasa.gov/profile",
+            timeout=30
+        )
+
+        if response.status_code == 200:
+            return True
+
+        print("Login failed with status:", response.status_code)
+        return False
     
     except Exception as e:
-        print("Login failed:", e)
+        print("Login failed:", e)   
         return False
 
 #build URL to be send 

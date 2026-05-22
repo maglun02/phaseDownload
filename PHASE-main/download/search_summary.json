@@ -1,8 +1,81 @@
 {
-    "product_count": 13,
-    "total_size_gb": 101.7,
-    "total_size_bytes": 109199466896,
+    "product_count": 15,
+    "total_size_gb": 117.34,
+    "total_size_bytes": 125987570255,
+    "best_path": 139,
+    "best_frame": 381,
+    "best_direction": "DESCENDING",
     "products": [
+        {
+            "sceneName": "S1A_IW_SLC__1SDV_20240531T165530_20240531T165558_054118_0694AB_B7A0",
+            "size": 7.96,
+            "size_bytes": 8542141924,
+            "pathNumber": 146,
+            "frameNumber": 203,
+            "flightDirection": "ASCENDING",
+            "footprint": {
+                "coordinates": [
+                    [
+                        [
+                            7.208534,
+                            63.416618
+                        ],
+                        [
+                            8.067294,
+                            61.765869
+                        ],
+                        [
+                            12.976663,
+                            62.211788
+                        ],
+                        [
+                            12.401394,
+                            63.875053
+                        ],
+                        [
+                            7.208534,
+                            63.416618
+                        ]
+                    ]
+                ],
+                "type": "Polygon"
+            }
+        },
+        {
+            "sceneName": "S1A_IW_SLC__1SDV_20240531T053908_20240531T053935_054111_069471_F625",
+            "size": 7.68,
+            "size_bytes": 8245961435,
+            "pathNumber": 139,
+            "frameNumber": 381,
+            "flightDirection": "DESCENDING",
+            "footprint": {
+                "coordinates": [
+                    [
+                        [
+                            14.129338,
+                            62.297585
+                        ],
+                        [
+                            14.983074,
+                            63.891403
+                        ],
+                        [
+                            9.695152,
+                            64.355003
+                        ],
+                        [
+                            9.126061,
+                            62.748325
+                        ],
+                        [
+                            14.129338,
+                            62.297585
+                        ]
+                    ]
+                ],
+                "type": "Polygon"
+            }
+        },
         {
             "sceneName": "S1A_IW_SLC__1SDV_20240529T055526_20240529T055554_054082_069370_BB79",
             "size": 7.96,
