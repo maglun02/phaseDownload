@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import asf_search as asf
+import functionality
 
 #check login for user
 def run_login():
@@ -40,8 +41,8 @@ def run_login():
 #run the first API call
 def run_search():
     #read data from matlab
-    data = API.read_json()
-    params = API.build_search_parameters(data)
+    data = functionality.read_json()
+    params = functionality.build_search_parameters(data)
     response = API.build_api_url(params)
 
     #handel errors
@@ -57,7 +58,7 @@ def run_search():
     data = response.json()
     print("Number of raw ASF features:", len(data["features"]))
 
-    info = API.relevant_info(data)
+    info = functionality.relevant_info(data)
 
     download_info = {
         "information": [
@@ -88,6 +89,7 @@ def run_search():
             "size_bytes": product["size_bytes"],
             "pathNumber": product["pathNumber"],
             "frameNumber": product["frameNumber"],
+            "flightDirection": product["flightDirection"],
             "footprint": product["footprint"]
         })
 
@@ -136,6 +138,38 @@ def run_download():
 
     with open(download_data_path, "r") as f:
         info = json.load(f)
+
+    search_summary_path = os.path.join(
+        os.path.dirname(__file__),
+        "search_summary.json"
+    )
+
+    with open(search_summary_path, "r") as f:
+        summary = json.load(f)
+    
+    #check if download request is valid, if not send problem back to matlab
+    compatibility = functionality.check_compatibility(summary["products"])
+    if not compatibility["valid"]:
+        summary = {
+        "status": "invalid",
+        "message": "Products are not compatible for PHASE.",
+        "same_path": compatibility["same_path"],
+        "same_frame": compatibility["same_frame"],
+        "same_direction": compatibility["same_direction"],
+        "paths": compatibility["paths"],
+        "frames": compatibility["frames"],
+        "direction": compatibility["direction"]
+    }
+        summary_path = os.path.join(
+            os.path.dirname(__file__),
+            "search_summary.json"
+        )
+
+        with open(summary_path, "w") as f:
+            json.dump(summary, f, indent=4)
+
+        print("Products are not compatible for PHASE.")
+        return
 
     API.download_url(info["information"], username, password)
 
