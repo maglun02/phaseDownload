@@ -100,6 +100,7 @@ def run_search():
             "sceneName": product["sceneName"],
             "size": round(product["size"], 2),
             "size_bytes": product["size_bytes"],
+            "startTime": product["startTime"],
             "pathNumber": product["pathNumber"],
             "frameNumber": product["frameNumber"],
             "flightDirection": product["flightDirection"],

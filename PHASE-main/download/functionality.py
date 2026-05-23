@@ -102,12 +102,14 @@ def relevant_info(data):
         
         size_bytes = props["bytes"]
         total_size += size_bytes
+        date = props["startTime"][:10]
 
         results.append({
         "sceneName": props["sceneName"],
         "url": props["url"],
         "size": props["bytes"] / (1024**3),
         "size_bytes": props["bytes"],
+        "startTime": date,
         "pathNumber": props["pathNumber"],
         "frameNumber": props["frameNumber"],
         "footprint": feature["geometry"],
