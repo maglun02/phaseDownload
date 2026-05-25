@@ -4,6 +4,7 @@ import asf_search as asf
 
 #check user credentials 
 def check_login(username, password):
+    #create temporary session for credential check
     try:
         session = asf.ASFSession().auth_with_creds(username, password)
         response = session.get(
@@ -22,39 +23,67 @@ def check_login(username, password):
         return False
 
 #build URL to be send 
-def build_api_url(params):
+def search_asf(params):
     #base URL where we can add parameters
     base_URL = "https://api.daac.asf.alaska.edu/services/search/param"
 
     #handeling network errors
     try:
-        response = requests.get(base_URL, params=params, timeout=30)
-        return response
+        return requests.get(base_URL, params=params, timeout=30)
     except requests.exceptions.RequestException as e:
-        print("Request faild:", e)
+        print("Request failed:", e)
         return None
 
 
 
 #using the urls from the first API call to download the files
-def download_url(information, username, password):
+def download_asf(information, username, password):
     #create a session with credentials for download
     session = asf.ASFSession().auth_with_creds(username, password)
 
-    #get the urls from data
-    urls = [item["url"] for item in information]
+    #list error, same as in controllor for compatability check 
+    if isinstance(information, dict):
+        information = [information]
+
 
     #path to download folder
     download_folder = os.path.join(
-        os.path.dirname(__file__),
-        "..",
-        "PHASE_Preprocessing",
-        "slaves"
+        os.path.dirname(__file__), "..", "PHASE_Preprocessing", "slaves"
         )
 
     #create folder if it not exist
     os.makedirs(download_folder, exist_ok=True)
 
+
+    #delting old files, but cheking if we are trying do download the same picture again to then not delte it
+    #finding incoming pictures
+    expected_files = {
+        item["sceneName"] + ".zip"
+        for item in information
+    }
+
+    #removing old files
+    for filename in os.listdir(download_folder):
+        if filename.endswith(".zip") and filename not in expected_files:
+            os.remove(os.path.join(download_folder, filename))
+    
+    #retriving the remaning download URls
+    urls = []
+    for item in information:
+        filename = item["sceneName"] + ".zip"
+        filepath = os.path.join(download_folder, filename)
+
+        if not os.path.exists(filepath):
+            url = item.get("url")
+            if url:
+                urls.append(url)
+
+
+    #handel no url error
+    if not urls:
+        print("no URLs")
+        return
+    
     #download using the found url, credentials from session and a path for files to be stored
     asf.download_urls(
         urls=urls,

@@ -4,16 +4,25 @@ from datetime import datetime
 from collections import defaultdict
 from shapely.geometry import Point, Polygon
 
-def read_json():
-    json_path = os.path.join(os.path.dirname(__file__), "search_request.json")
-    with open(json_path, "r") as f:
-        data = json.load(f)
-    return data
+#read and write to json files
+def read_json(filename):
+    path = os.path.join(os.path.dirname(__file__), filename)
+    
+    with open(path, "r") as f:
+        return json.load(f)
+    
+def write_json(filename, data):
+    path = os.path.join(os.path.dirname(__file__), filename)
+
+    with open(path, "w") as f:
+        json.dump(data, f, indent=4)
+    
 
 #setting up AOI for URL
 def build_aoi(aoi):
     aoi_type = aoi["type"]
     
+    #seperate based on aoi type
     if aoi_type == "point":
         lon, lat = aoi["coordinates"]
         return f"POINT({lon} {lat})"
@@ -40,7 +49,7 @@ def handle_multi_variable(params, asf_name, value):
 
 #build search parameter for url search
 def build_search_parameters(data):
-    #import parameters and harcode sentinel-1, hardcoded data just for test
+    #import parameters and harcode sentinel-1
     aoi = data["aoi"]
     start_date = data.get("startDate")
     end_date = data.get("endDate") 
@@ -49,12 +58,14 @@ def build_search_parameters(data):
     frameStart = data.get("frameStart")
     frameEnd = data.get("frameEnd")
 
+    #parameter that always has to be in the search
     params = {
         "dataset": "SENTINEL-1",
         "intersectsWith": build_aoi(aoi),
         "output": "geojson"
     }
 
+    #retrive parameter if they are a part of the search
     if start_date:
         params["start"] = start_date
     if end_date:
@@ -81,7 +92,7 @@ def build_search_parameters(data):
         params["frame"] = frameEnd
     return params
 
-#retriving relevant data to show user
+#retriving relevant data to show user after first asf search
 def relevant_info(data):
     features = data["features"]
     results = []
@@ -91,24 +102,21 @@ def relevant_info(data):
     #relevant info for each picture and total size off all pictures
     for feature in features:
         props = feature["properties"]
-        print(json.dumps(feature["geometry"], indent=2))
 
-        if not props["url"].endswith(".zip"):
+        url = props.get("url", "")
+        if not url.endswith(".zip"):
             continue
         
-        #allowed_levels = ["SLC"]
-        #if props["processingLevel"] not in allowed_levels:
-            #continue
-        
-        size_bytes = props["bytes"]
+        size_bytes = props.get("bytes", 0)
         total_size += size_bytes
-        date = props["startTime"][:10]
+        startTime = props.get("startTime", "")
+        date = startTime[:10]
 
         results.append({
         "sceneName": props["sceneName"],
-        "url": props["url"],
-        "size": props["bytes"] / (1024**3),
-        "size_bytes": props["bytes"],
+        "url": url,
+        "size": size_bytes / (1024**3),
+        "size_bytes": size_bytes,
         "startTime": date,
         "pathNumber": props["pathNumber"],
         "frameNumber": props["frameNumber"],
@@ -137,7 +145,9 @@ def sampling_rate(information, rate, period):
     groups = defaultdict(list)
     for product in information:
         props = product["properties"]
-        if not props["url"].endswith(".zip"):
+        
+        url = props.get("url", "")
+        if not url.endswith(".zip"):
             continue
 
         date = datetime.fromisoformat(
@@ -151,7 +161,9 @@ def sampling_rate(information, rate, period):
         elif period == "month":
             key = date.strftime("%Y-%m")
         elif period == "year":
-            key = date.strftime("%Y")   
+            key = date.strftime("%Y") 
+        else:
+            raise ValueError(f"Unsuported sampling period: {period}")  
 
         #add product to the correct group
         groups[key].append(product)
@@ -183,17 +195,17 @@ def sampling_rate(information, rate, period):
 def check_compatibility(information):
     #retrieving information from search summary 
     paths = {product["pathNumber"] for product in information}
-    frame = {product["frameNumber"] for product in information}
-    direction = {product["flightDirection"] for product in information}
+    frames = {product["frameNumber"] for product in information}
+    directions = {product["flightDirection"] for product in information}
 
     #check if they are the same
     results = {
         "same_path": len(paths) == 1,
-        "same_frame": len(frame) == 1,
-        "same_direction": len(direction) == 1,
+        "same_frame": len(frames) == 1,
+        "same_direction": len(directions) == 1,
         "paths": list(paths),
-        "frames": list(frame),
-        "direction": list(direction)
+        "frames": list(frames),
+        "directions": list(directions)
     }
 
     results["valid"] = (
@@ -206,18 +218,21 @@ def check_compatibility(information):
 
 #finding the best producrt for user
 def best_footprint(products, aoi_lon, aoi_lat):
+    #use center of aoi to find best product
     aoi_center = Point(aoi_lon, aoi_lat)
 
     best_product = None
     best_score = -1
 
+    #chechk every product
     for product in products:
         coords = product["footprint"]["coordinates"][0]
         polygon = Polygon(coords)
 
         if not polygon.contains(aoi_center):
             continue
-
+        
+        #finding distance, and updating new best product if it is better
         score = aoi_center.distance(polygon.boundary)
 
         if score > best_score:
@@ -226,6 +241,7 @@ def best_footprint(products, aoi_lon, aoi_lat):
     
     return best_product
 
+#help function for finding the center of a aoi and returning coordinates
 def find_aoi_center(aoi):
     if aoi["type"] == "point":
         lon, lat = aoi["coordinates"]

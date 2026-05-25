@@ -1,21 +1,11 @@
 import API
-import json
-import os
 import sys
-import asf_search as asf
 import functionality
 
 #check login for user
 def run_login():
-    print("run_login started")
     #get username and password
-    login_path = os.path.join(
-        os.path.dirname(__file__),
-        "login_request.json"
-    )
-
-    with open(login_path, "r") as f:
-        userInfo = json.load(f)
+    userInfo = functionality.read_json("login_request.json")
 
     username = userInfo.get("username")
     password = userInfo.get("password")
@@ -30,35 +20,25 @@ def run_login():
         login_result["status"] = "failure"
         print("login faild, password or username wrong")
         
-    result_path = os.path.join(
-        os.path.dirname(__file__),
-        "login_result.json"
-    )
-
-    with open(result_path, "w") as f:
-        json.dump(login_result, f, indent=4)
+    functionality.write_json("login_result.json", login_result)
 
 
 #run the first API call
 def run_search():
-    #read data from matlab
-    request_data = functionality.read_json()
+    #read data from matlab, and build API call
+    request_data = functionality.read_json("search_request.json")
     params = functionality.build_search_parameters(request_data)
-    response = API.build_api_url(params)
+    response = API.search_asf(params)
 
     #handel errors
     if response is None:
         print("request faild")
         return
     
-    if response.status_code != 200:
-        print("API error:", response.status_code)
-        print(response.text)
-        return
-    
     data = response.json()
     print("Number of raw ASF features:", len(data["features"]))
 
+    #handle sampling if user want
     sampling = request_data.get("sampling")
     if sampling:
         data["features"] = functionality.sampling_rate(
@@ -67,12 +47,14 @@ def run_search():
             sampling.get("unit")
         )
 
+    #get all relevant info that is needed for matlab
     info = functionality.relevant_info(data)
     
     #retive the best footprint, to get best path, frame and orbit direction
     aoi_lon, aoi_lat = functionality.find_aoi_center(request_data["aoi"])
     best_product = functionality.best_footprint(info["information"], aoi_lon, aoi_lat)
 
+    #save all data needed for download
     download_info = {
         "information": [
             {
@@ -83,16 +65,9 @@ def run_search():
         ]
     }
 
-    #save all data for later use
-    download_data_path = os.path.join(
-        os.path.dirname(__file__),
-        "download_data.json"
-    )
+    functionality.write_json("download_data.json", download_info)
 
-    with open(download_data_path, "w") as f:
-        json.dump(download_info, f, indent=4)
-
-    #summary for matlab, containing size, footprint, path and frame 
+    #write summary for matlab, containing size, footprint, path and frame 
     products = []
 
     for product in info["information"]:
@@ -111,56 +86,57 @@ def run_search():
         "product_count": info["product_count"],
         "total_size_gb": round(info["total_size_gb"], 2),
         "total_size_bytes": info["total_size_bytes"],
-        "best_path": best_product["pathNumber"],
-        "best_frame": best_product["frameNumber"],
-        "best_direction": best_product["flightDirection"],
         "products": products
     }
-    print(summary)
 
-    summary_path = os.path.join(
-        os.path.dirname(__file__),
-        "search_summary.json"
-    )
+    #only add best result of there exist best results
+    if best_product:
+        summary.update({
+            "best_path": best_product["pathNumber"],
+            "best_frame": best_product["frameNumber"],
+            "best_direction": best_product["flightDirection"]
+        })
+    else:
+        summary.update({
+            "best_path": None,
+            "best_frame": None,
+            "best_direction": None,
+            "warning" : "no products footptint contains the AOI center"
+        })
 
-    with open(summary_path, "w") as f:
-        json.dump(summary, f, indent=4)
 
-    for product in info["information"][:5]:
-        print(product["sceneName"], "-", round(product["size"], 2), "GB")
+    functionality.write_json("search_summary.json", summary)
     
 #if download confirmed, start downloading data
 def run_download():
+    print("run_download started")
     #get username and password
-    login_path = os.path.join(
-        os.path.dirname(__file__),
-        "login_request.json"
-    )
-
-    with open(login_path, "r") as f:
-        userInfo = json.load(f)
-
+    userInfo = functionality.read_json("login_request.json")
     username = userInfo.get("username")
     password = userInfo.get("password")
+
     #get data from json file
-    download_data_path = os.path.join(
-        os.path.dirname(__file__),
-        "download_data.json"
-    )
+    info = functionality.read_json("download_data.json")
 
-    with open(download_data_path, "r") as f:
-        info = json.load(f)
+    summary = functionality.read_json("search_summary.json")
 
-    search_summary_path = os.path.join(
-        os.path.dirname(__file__),
-        "search_summary.json"
-    )
+    products = summary.get("products", [])
 
-    with open(search_summary_path, "r") as f:
-        summary = json.load(f)
+    #handle not a list error if only one product is selected
+    if isinstance(products, dict):
+        products = [products]
+
+
+    #check if there are any products for download
+    if not products:
+        functionality.write_json("search_summary.json", {
+            "status": "invalid",
+            "message": "No products available for download."
+        })
+        return
     
-    #check if download request is valid, if not send problem back to matlab
-    compatibility = functionality.check_compatibility(summary["products"])
+    #check if download request is valid, if not send error back to matlab
+    compatibility = functionality.check_compatibility(products)
     if not compatibility["valid"]:
         summary = {
             "status": "invalid",
@@ -168,22 +144,23 @@ def run_download():
             "compatibility": compatibility
         }
 
-        summary_path = os.path.join(
-            os.path.dirname(__file__),
-            "search_summary.json"
-        )
-
-        with open(summary_path, "w") as f:
-            json.dump(summary, f, indent=4)
+        functionality.write_json("search_summary.json", summary)
 
         print("Products are not compatible for PHASE.")
         return
 
-    API.download_url(info["information"], username, password)
+    #if all checks passed, start download
+    API.download_asf(info["information"], username, password)
 
 
 if __name__ == "__main__":
+    #make shure mode has a value
+    if len(sys.argv) < 2:
+        print("Missing mode. Use: search, download, or login.")
+        sys.exit(1)
+    
     mode = sys.argv[1]
+
 
     #sepreate if we want to run search, download or username/password check 
     if mode == "search":
@@ -194,3 +171,8 @@ if __name__ == "__main__":
 
     elif mode == "login":
         run_login()
+
+    #incase wrong mode
+    else:
+        print(f"unknown mode{mode}")
+        sys.exit(1)
