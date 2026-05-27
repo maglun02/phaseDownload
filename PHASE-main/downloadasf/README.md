@@ -1,10 +1,38 @@
 # Download tab usage
 
+# Python Requirements
+
+The backend requires Python and the following Python packages:
+
+pip install requests
+pip install asf_search
+pip install shapely
+
+Depending on the Python installation, the commands may instead need to be:
+
+python -m pip install requests
+python -m pip install asf_search
+python -m pip install shapely
+
+or:
+
+py -m pip install requests
+py -m pip install asf_search
+py -m pip install shapely
+
+The packages must be installed in the same Python environment that MATLAB uses through pyenv.
+
+To check which Python environment MATLAB uses:
+
+matlab
+pyenv
+
 ## Filters
 
 Press **Show Filters** to open the parameter panel.
 
 Available filters include:
+
 - Product/file type
 - Beam mode
 - Sub type
@@ -16,7 +44,7 @@ Available filters include:
 
 ### Reset all filters
 
-Press: 
+Press:
 
 **Reset all filters**
 
@@ -27,6 +55,7 @@ Parameters are reset to default values.
 The Sampling Rate parameter allows limits of number of search results
 
 Examples:
+
 - X images per week
 - X images per month
 - X images per year
@@ -50,6 +79,7 @@ Clears current AOI
 Then drag on the map to create a rectangular AOI.
 
 While drawing mode is active:
+
 - Map navigation is disabled
 - The rectangle must be completed before continuing
 
@@ -66,6 +96,7 @@ Clears current AOI
 Then click once for each polygon corner.
 
 To finish the polygon:
+
 - Click again on the first point/node
 
 ### Clear AOI
@@ -85,6 +116,7 @@ After selecting parameters and an AOI, press:
 **Search ASF**
 
 The application will:
+
 1. Save the selected parameters and AOI to:
    `download/search_request.json`
 2. Run the ASF search through the backend
@@ -96,10 +128,12 @@ The application will:
 ## Search Result Popup
 
 After a successful search, a popup window appears showing:
+
 - Number of SAR images found
 - Estimated total download size
 
 Available options:
+
 - Preview Results
 - OK
 
@@ -115,6 +149,7 @@ The preview panel can be opened using:
 **Show Preview**
 
 The panel contains:
+
 - A table of all search results
 - Image selection checkboxes
 - Download buttons
@@ -124,6 +159,7 @@ The panel contains:
 After a download has started, a loading/progress bar appears above the download buttons.
 
 The progress bar shows:
+
 - Download progress in percent
 - Estimated download speed
 - Estimated remaining download time
@@ -149,6 +185,7 @@ Footprints are automatically shown after a successful search.
 Selecting an image checkbox in the preview table highlights the corresponding footprint on the map.
 
 The highlighted footprint corresponds to the selected image’s:
+
 - Path
 - Frame
 
@@ -177,12 +214,14 @@ The login is used to connect the backend API with the ASF services used for down
 Assumes that the user already has an ASF/Earthdata account.
 
 Use the same:
+
 - Username
 - Password
 
 that are used for the ASF website.
 
 If:
+
 - One or both input fields are empty, a small error message is displayed
 - The username or password is incorrect, the login fails and an error message is shown
 
@@ -208,6 +247,7 @@ Two download options are available:
 Download selected only available if one or more images have been selected.
 
 Before downloading, a confirmation popup displays:
+
 - Number of files
 - Total download size
 
@@ -216,6 +256,7 @@ Before downloading, a confirmation popup displays:
 ## Download Restrictions
 
 Images must have the same:
+
 - Path
 - Frame
 - Flight direction
@@ -231,6 +272,7 @@ Downloaded files are stored in:
 `PHASE_Preprocessing/slaves`
 
 Before starting a new download:
+
 - Old irrelevant files may be removed
 - Existing duplicate files are preserved
 
@@ -249,10 +291,12 @@ The following file is used:
 `download/last_download_request.json`
 
 This file stores:
+
 - Search parameters
 - AOI coordinates
 
 When loaded:
+
 - Filters are restored
 - The previous AOI is redrawn on the map
 
@@ -288,13 +332,13 @@ Contains the complete download list and URLs returned from the latest ASF search
 
 # Important JSON Files
 
-| File | Purpose |
-|---|---|
-| `search_request.json` | Current ASF search request |
-| `search_summary.json` | Current active search result metadata |
-| `search_summary_all.json` | Backup of latest complete search metadata |
-| `download_data.json` | Active download list used by backend |
-| `download_data_all.json` | Backup of latest complete download list |
-| `last_download_request.json` | Parameters from last successful download |
-| `login_request.json` | Username and password used for ASF login |
-| `login_result.json` | Result of backend login validation |
+| File                         | Purpose                                   |
+| ---------------------------- | ----------------------------------------- |
+| `search_request.json`        | Current ASF search request                |
+| `search_summary.json`        | Current active search result metadata     |
+| `search_summary_all.json`    | Backup of latest complete search metadata |
+| `download_data.json`         | Active download list used by backend      |
+| `download_data_all.json`     | Backup of latest complete download list   |
+| `last_download_request.json` | Parameters from last successful download  |
+| `login_request.json`         | Username and password used for ASF login  |
+| `login_result.json`          | Result of backend login validation        |
