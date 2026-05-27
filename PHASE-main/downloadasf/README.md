@@ -4,21 +4,21 @@
 
 The backend requires Python and the following Python packages:
 
-pip install requests
-pip install asf_search
-pip install shapely
+- pip install requests
+- pip install asf_search
+- pip install shapely
 
 Depending on the Python installation, the commands may instead need to be:
 
-python -m pip install requests
-python -m pip install asf_search
-python -m pip install shapely
+- python -m pip install requests
+- python -m pip install asf_search
+- python -m pip install shapely
 
 or:
 
-py -m pip install requests
-py -m pip install asf_search
-py -m pip install shapely
+- py -m pip install requests
+- py -m pip install asf_search
+- py -m pip install shapely
 
 The packages must be installed in the same Python environment that MATLAB uses through pyenv.
 
