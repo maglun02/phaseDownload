@@ -1,6 +1,6 @@
 # Download tab usage
 
-# Python Requirements
+## Python Requirements
 
 The backend requires Python and the following Python packages:
 
