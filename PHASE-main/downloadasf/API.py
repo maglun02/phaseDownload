@@ -1,6 +1,7 @@
 import requests
 import os
 import asf_search as asf
+import functionality
 
 #check user credentials 
 def check_login(username, password):
@@ -62,11 +63,19 @@ def download_asf(information, username, password):
         for item in information
     }
 
+    # deletion pending
+    datanot = "pending"
+    functionality.write_json("deletion.json", datanot)
+
     #removing old files
     for filename in os.listdir(download_folder):
         if filename.endswith(".zip") and filename not in expected_files:
             os.remove(os.path.join(download_folder, filename))
     
+    #deletion complete
+    dataok = "complete"
+    functionality.write_json("deletion.json", dataok)
+
     #retriving the remaning download URls
     urls = []
     for item in information:
@@ -91,4 +100,3 @@ def download_asf(information, username, password):
         session=session
 
     )
-
